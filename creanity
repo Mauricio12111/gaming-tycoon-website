@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .resources {
+            margin: 20px 0;
+        }
+        .resources div {
+            margin: 5px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .log {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+            height: 150px;
+            overflow-y: scroll;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>City Manager 🏙️</h1>
+    <div class="resources">
+        <div>Population : <span id="population">10</span></div>
+        <div>Argent 💰 : $<span id="money">1000</span></div>
+    </div>
+    <button onclick="buildHouse()">Construire une Maison (-$100)</button>
+    <button onclick="collectTaxes()">Collecter des Taxes (+$50)</button>
+    <button onclick="startWar()">Déclarer la Guerre (-$200)</button>
+
+    <div class="log" id="log">
+        <strong>Journal des événements :</strong>
+    </div>
+
+    <script>
+        // Initialisation des ressources
+        let population = 10;
+        let money = 1000;
+
+        // Met à jour les statistiques affichées
+        function updateStats() {
+            document.getElementById('population').innerText = population;
+            document.getElementById('money').innerText = money;
+        }
+
+        // Ajoute une entrée dans le journal des événements
+        function logEvent(message) {
+            const log = document.getElementById('log');
+            const newLog = document.createElement('div');
+            newLog.innerText = message;
+            log.appendChild(newLog);
+            log.scrollTop = log.scrollHeight; // Scroll automatique
+        }
+
+        // Actions du joueur
+        function buildHouse() {
+            if (money >= 100) {
+                money -= 100;
+                population += 5;
+                logEvent("Vous avez construit une maison. La population a augmenté de 5 !");
+                updateStats();
+            } else {
+                logEvent("Pas assez d'argent pour construire une maison !");
+            }
+        }
+
+        function collectTaxes() {
+            money += 50;
+            logEvent("Vous avez collecté des taxes. +$50 !");
+            updateStats();
+        }
+
+        function startWar() {
+            if (money >= 200) {
+                money -= 200;
+                population -= 2;
+                logEvent("Vous avez déclaré une guerre. Vous avez perdu 2 habitants.");
+                updateStats();
+            } else {
+                logEvent("Pas assez d'argent pour déclarer la guerre !");
+            }
+        }
+
+        // Mise à jour initiale
+        updateStats();
+    </script>
+</body>
+</html>
