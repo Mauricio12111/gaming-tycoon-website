@@ -1,13 +1,49 @@
-{
-  "id": "centrale_congo",
-  "type": "power",
-  "title": "Centrale Congo 🇨🇩",
-  "text": "Petite centrale nationale de la RDC, produit 500⚡️.",
-  "width": 2,
-  "height": 2,
-  "price": 100000,
-  "monthly price": 500,
-  "power": 500,
-  "build time": 80,
-  "texture": "central_congo.png"
-}
+# Jeu de Devinette 🎮
+
+Bienvenue dans le **Jeu de Devinette** ! Ce simple jeu est écrit en JavaScript et peut être exécuté directement dans le navigateur.
+
+## Comment jouer ?
+
+1. Clonez ce dépôt ou copiez le code ci-dessous.
+2. Ajoutez le code JavaScript dans un fichier `.html` pour l'exécuter dans votre navigateur.
+3. Suivez les instructions pour deviner le nombre secret !
+
+---
+
+## Code du jeu
+
+Voici le code source du jeu :
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Devinette</title>
+</head>
+<body>
+    <h1>Jeu de Devinette</h1>
+    <p>Devinez le nombre secret entre 1 et 100 :</p>
+    <input type="number" id="guess" placeholder="Entrez votre nombre">
+    <button onclick="checkGuess()">Deviner</button>
+    <p id="result"></p>
+
+    <script>
+        const secretNumber = Math.floor(Math.random() * 100) + 1;
+
+        function checkGuess() {
+            const userGuess = document.getElementById('guess').value;
+            const result = document.getElementById('result');
+
+            if (userGuess == secretNumber) {
+                result.textContent = 'Félicitations ! Vous avez trouvé le nombre secret ! 🎉';
+            } else if (userGuess > secretNumber) {
+                result.textContent = 'Trop grand ! Essayez un nombre plus petit.';
+            } else {
+                result.textContent = 'Trop petit ! Essayez un nombre plus grand.';
+            }
+        }
+    </script>
+</body>
+</html>
