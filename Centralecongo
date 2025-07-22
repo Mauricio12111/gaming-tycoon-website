@@ -1,0 +1,13 @@
+{
+  "id": "centrale_congo",
+  "type": "power",
+  "title": "Centrale Congo 🇨🇩",
+  "text": "Petite centrale nationale de la RDC, produit 500⚡️.",
+  "width": 2,
+  "height": 2,
+  "price": 100000,
+  "monthly price": 500,
+  "power": 500,
+  "build time": 80,
+  "texture": "central_congo.png"
+}
