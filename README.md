@@ -1,17 +1,35 @@
-# Gaming Tycoon
-
-![Gaming Tycoon Banner](https://via.placeholder.com/1200x400?text=Gaming+Tycoon+Banner)
-<img width="2048" height="2048" alt="image" src="https://github.com/user-attachments/assets/f8960cf6-2a05-47d6-94cf-e75a658c7197" /> ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Licence](https://img.shields.io/badge/licence-MIT-blue)
-
-**Gaming Tycoon** est une plateforme innovante dédiée aux passionnés de jeux vidéo. Avec pour slogan **"Gaming Let's Go"**, ce projet vise à offrir une expérience unique aux joueurs et développeurs du monde entier.
-![image](https://github.com/user-attachments/assets/7f18f16f-0db6-4807-af2c-66651dc59021)
+Ethical Hacking*  
+ppC)thique et lC)galitC)
++ Plateforme : *TryHackMe* *(ou autre si tu veux)*
 
 ---
 
-## Table des Matières
-1. [Introduction](#introduction)
-2. [Fonctionnalités](#fonctionnalités)
+p- Nmap
+- Metasploit
+- Wireshark
+- John The Ripper
+- Burp Suite
+
+---
+
+p- Email : *mauricio@email.com* *(C  personnaliser)*  
+- GitHub : [github.com/mauricio12111](https://github.com/mauricio12111)
+---
+
+ppaime apprendre comment protC)ger les systC(mes informatiques et tester leur sC)curitC) de maniC(re C)thique.
+
+---
+
+b- Tests de pC)nC)tration (pentest)
+- SC)curitC) des rC)seaux
+- Utilisation de Linux/Shell
+- Principes dbai obtenu un *certificat en Ethical Hacking*. Jbmarkdown
+p
+ Certificat en Ethical Hacking ![Certification](https://img.shields.io/badge/Verified-Certified-brightgreen)
+
+Salut ! Je suis *Mauricio*.  
+Je suis passionnC) par la cybersC)curitC) et jb
+onnalités)
 3. [Aperçu Visuel](#apercu-visuel)
 4. [Installation](#installation)
 5. [Utilisation](#utilisation)
