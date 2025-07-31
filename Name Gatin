@@ -1,0 +1,39 @@
+environnement Railway
+BOT_TOKEN = os.environ.get("7942265899:AAEFNDriEQqHlXpXPUm9-3muJqRAHzYVc8o")
+OPENAI_API_KEY = os.environ.get("key: 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")
+
+openai.api_key = OPENAI_API_KEY
+
+Commande /game
+async def game(update, context):
+    user_input = "Quel est le meilleur jeu ?"  # Remplace C'a plus tard par un vrai input
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": user_input}]
+    )
+    answer = response.choices[0].message.content
+    await update.message.reply_text(f"pimport os
+import openai
+from telegram.ext import Application, CommandHandler
+
+ClC)s depuis les variables db
+ {answer}")
+
+Lancement du bot
+app = Application.builder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("game", game))
+app.run_polling()
+
+
+
+Fais que mon mini app sois le meilleur de tous le mini app Telegram intégre un jeux dans mon bot le jeux doit être free fire
+
+
+Shree
+
+pk_test_51RqlzzE17AmSkaEFS4RXojHrRqxfo3L38bfwoa4iuHRQgwemxNES8ywdvtnoZWlqzWxtwYbnPmc6tFpoZCYJBB5a00oBp11owE
+
+Vitess
+
+sk_test_51RqlzzE17AmSkaEFmhBM4uwqUjKeFEWWpgbgJOLj0v0KsUZSRgcbrmwUnl1ugtE4yYf5qj3ggHoAylTohdTMcKFB00epIV12rv
+python3 Name-gitin.py
