@@ -1,265 +1,73 @@
-import express from "express";
-import bodyParser from "body-parser";
-import mysql from "mysql2/promise";
-import cors from "cors";
+// api/gemini.js
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const { GoogleGenAI } = require('@google/genai');
+const mysql = require('mysql2/promise');
 
-app.use(cors());
-app.use(bodyParser.json());
+// ⚠️ Avertissement : Les informations d'identification sont ici en clair pour les besoins de ce test.
+// Dans un projet de production, utilisez toujours des variables d'environnement.
 
-// 🔹 Config MySQL Aiven
-const pool = mysql.createPool({
-  host: "mysql-1a36101-botwii.c.aivencloud.com",
-  user: "avnadmin",
-  password: "AVNS_BvVULOCxM7CcMQd0Aqw",
-  database: "defaultdb",
-  port: 14721,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  ssl: { rejectUnauthorized: false }
-});
+const GEMINI_API_KEY = "AIzaSyBDdDDUxr4Y8ZSFN7fBrkRzuL3SkIswAqw";
+const DATABASE_CONFIG = {
+    host: "mysql-1a36101-botwii.c.aivencloud.com",
+    port: 14721,
+    user: "avnadmin",
+    password: "AVNS_BvVULOCxM7CcMQd0Aqw",
+    database: "defaultdb",
+    ssl: {
+        rejectUnauthorized: true
+    }
+};
 
-// ⚡ Création des tables thématiques
-(async () => {
-  try {
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS knowledge (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        question TEXT NOT NULL,
-        answer TEXT NOT NULL,
-        category VARCHAR(100) DEFAULT 'general',
-        language VARCHAR(10) DEFAULT 'fr',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
+// Initialisation de la connexion à la base de données et de l'IA
+const connection = mysql.createPool(DATABASE_CONFIG);
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS learn_queue (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        question TEXT NOT NULL,
-        correct_answer TEXT NOT NULL,
-        status ENUM('pending','learned') DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+// Fonction pour créer la table 'apprentissage'
+async function ensureTableExists() {
+    const query = `
+        CREATE TABLE IF NOT EXISTS apprentissage (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            question TEXT NOT NULL,
+            reponse TEXT NOT NULL
+        )
+    `;
+    await connection.execute(query);
+    console.log("Table 'apprentissage' vérifiée/créée.");
+}
 
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Animals (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        name VARCHAR(50) NOT NULL,
-        genre VARCHAR(50) NOT NULL,
-        facts TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Histoire (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Geographie (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Anatomie (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Physique (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS CultureGenerale (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Sciences (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS Mathematiques (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        key_name VARCHAR(50) NOT NULL UNIQUE,
-        title VARCHAR(100),
-        content TEXT,
-        context TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log("✅ Toutes les tables intelligence prêtes !");
-  } catch (err) {
-    console.error("❌ Erreur création tables :", err);
-  }
-})();
-
-// 🔹 Liste des 17 agents spécialisés
-const agents = [
-  { name: "AnimalBot", domain: "Animaux", intro: "Je connais tous les animaux.", priority: 10 },
-  { name: "Historian", domain: "Histoire", intro: "Je maîtrise l'histoire mondiale.", priority: 9 },
-  { name: "GeoMaster", domain: "Geographie", intro: "Je connais les pays, continents et cartes.", priority: 9 },
-  { name: "Anatomist", domain: "Anatomie", intro: "Je connais le corps humain.", priority: 10 },
-  { name: "Physicist", domain: "Physique", intro: "Je maîtrise la physique et les concepts scientifiques.", priority: 10 },
-  { name: "CultureGuru", domain: "Culture générale", intro: "Je peux répondre à toute question culturelle.", priority: 8 },
-  { name: "Scientist", domain: "Sciences", intro: "Je connais la biologie, chimie et sciences naturelles.", priority: 9 },
-  { name: "MathGenius", domain: "Mathématiques", intro: "Je résous tous les problèmes mathématiques.", priority: 10 },
-  { name: "Techie", domain: "Technologie", intro: "Je maîtrise l'informatique et la technologie.", priority: 8 },
-  { name: "Philosopher", domain: "Philosophie", intro: "Je peux discuter des concepts profonds.", priority: 7 },
-  { name: "Linguist", domain: "Langues", intro: "Je connais les langues et la grammaire.", priority: 8 },
-  { name: "Economist", domain: "Économie", intro: "Je maîtrise les concepts économiques.", priority: 8 },
-  { name: "Politician", domain: "Politique", intro: "Je connais la politique et les systèmes gouvernementaux.", priority: 7 },
-  { name: "Engineer", domain: "Ingénierie", intro: "Je connais les principes d'ingénierie.", priority: 8 },
-  { name: "ArtCritic", domain: "Art", intro: "Je peux analyser et expliquer les arts.", priority: 7 },
-  { name: "Chef", domain: "Cuisine", intro: "Je connais les recettes et techniques culinaires.", priority: 6 },
-  { name: "HealthGuru", domain: "Santé", intro: "Je peux répondre aux questions médicales de base.", priority: 9 }
-];
-
-// 🔹 Route GET racine pour tester le serveur
-app.get("/", (req, res) => {
-  res.send("🚀 Mangrat Server est actif et fonctionne !");
-});
-
-// 🔹 Route POST /ask
-app.post("/ask", async (req, res) => {
-  const { question, category = 'general' } = req.body;
-  if (!question) return res.status(400).json({ reply: "❌ Donne-moi une question !" });
-
-  try {
-    let tableName = "knowledge";
-    switch(category.toLowerCase()) {
-      case "animal": tableName = "Animals"; break;
-      case "histoire": tableName = "Histoire"; break;
-      case "géographie": tableName = "Geographie"; break;
-      case "anatomie": tableName = "Anatomie"; break;
-      case "physique": tableName = "Physique"; break;
-      case "culture": tableName = "CultureGenerale"; break;
-      case "science": tableName = "Sciences"; break;
-      case "math": tableName = "Mathematiques"; break;
-      default: tableName = "knowledge"; break;
+// Fonction principale qui gère la requête POST
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') {
+        res.status(405).send('Method Not Allowed');
+        return;
     }
 
-    const [rows] = await pool.execute(
-      `SELECT content AS answer FROM ${tableName} WHERE title = ? OR key_name = ? LIMIT 1`,
-      [question, question]
-    );
+    const { message } = req.body;
 
-    if (rows.length > 0) return res.json({ reply: rows[0].answer });
-
-    const fallback = "Je ne connais pas encore cette réponse, enseigne-moi !";
-    await pool.execute(
-      "INSERT INTO learn_queue (question, correct_answer) VALUES (?, ?)",
-      [question, fallback]
-    );
-
-    res.json({ reply: fallback });
-  } catch (err) {
-    console.error("❌ Erreur serveur :", err);
-    res.status(500).json({ reply: "⚠️ Erreur serveur." });
-  }
-});
-
-// 🔹 Route POST /teach
-app.post("/teach", async (req, res) => {
-  const { question, answer, category = 'general' } = req.body;
-  if (!question || !answer) return res.status(400).json({ reply: "❌ Question et réponse requises !" });
-
-  try {
-    let tableName = "knowledge";
-    switch(category.toLowerCase()) {
-      case "animal": tableName = "Animals"; break;
-      case "histoire": tableName = "Histoire"; break;
-      case "géographie": tableName = "Geographie"; break;
-      case "anatomie": tableName = "Anatomie"; break;
-      case "physique": tableName = "Physique"; break;
-      case "culture": tableName = "CultureGenerale"; break;
-      case "science": tableName = "Sciences"; break;
-      case "math": tableName = "Mathematiques"; break;
-      default: tableName = "knowledge"; break;
+    if (!message) {
+        res.status(400).send({ error: "Le message est requis." });
+        return;
     }
 
-    await pool.execute(`
-      INSERT INTO ${tableName} (title, content)
-      VALUES (?, ?)
-      ON DUPLICATE KEY UPDATE content = ?, updated_at = NOW()
-    `, [question, answer, answer]);
+    try {
+        await ensureTableExists();
 
-    await pool.execute("UPDATE learn_queue SET status='learned' WHERE question = ?", [question]);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ role: "user", parts: [{ text: message }] }],
+        });
 
-    res.json({ reply: "✅ Mangrat a appris cette réponse !" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "❌ Erreur serveur." });
-  }
-});
+        const responseText = response.text;
+        
+        const insertQuery = "INSERT INTO apprentissage (question, reponse) VALUES (?, ?)";
+        await connection.execute(insertQuery, [message, responseText]);
+        
+        console.log(`[MySQL DB] Nouvelle entrée ajoutée.`);
 
-// 🔹 Lancer serveur
-app.listen(PORT, () => {
-  console.log(`🚀 Mangrat Server running on http://localhost:${PORT}`);
-});
-
-// 🔹 Ping MySQL pour garder actif
-setInterval(async () => {
-  try {
-    await pool.execute("SELECT 1");
-    console.log("Ping MySQL - serveur actif");
-  } catch (err) {
-    console.error("Ping MySQL échoué :", err);
-  }
-}, 60000);
+        res.status(200).json({ aiResponse: responseText });
+    } catch (error) {
+        console.error("Erreur critique (Gemini ou MySQL) :", error);
+        res.status(500).json({ error: "Erreur lors du traitement. Vérifiez les logs Vercel." });
+    }
+};
