@@ -3,36 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discuter avec Mangrat</title>
+    <title>Admin - Mangrat</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="chat-container">
-        <header class="chat-header">
-            <h1>Mangrat AI 🧠</h1>
-            <p>Connecté au Cerveau Central</p>
+    <div class="container">
+        <header>
+            <h1>🧠 Panel d'Administration Mangrat</h1>
+            <p>Enseignez de nouvelles connaissances et supervisez le cerveau.</p>
         </header>
 
-        <div class="chat-box" id="chat-box">
+        <main>
+            <div class="teach-section">
+                <h2>Enseigner une nouvelle information</h2>
+                <form id="teach-form">
+                    <input type="text" id="question" placeholder="La question ou le mot-clé (ex: 'Capitale de la France')" required>
+                    <textarea id="answer" placeholder="La réponse (ex: 'Paris')" required></textarea>
+                    <input type="text" id="category" placeholder="Catégorie (ex: 'géographie')" required>
+                    <button type="submit">Enseigner à Mangrat</button>
+                </form>
+                <div id="form-status"></div>
             </div>
 
-        <div class="typing-indicator" id="typing-indicator" style="display: none;">
-            Mangrat est en train d'écrire...
-        </div>
-
-        <form class="chat-form" id="chat-form">
-            <input 
-                type="text" 
-                id="user-input" 
-                placeholder="Posez votre question ici..." 
-                autocomplete="off" 
-                autofocus
-            >
-            <button type="submit">Envoyer</button>
-        </form>
+            <div class="knowledge-section">
+                <h2>Prochainement : Vue de la base de connaissances</h2>
+                <p>Cette section affichera les données des tables pour vérification.</p>
+            </div>
+        </main>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        const form = document.getElementById('teach-form');
+        const statusDiv = document.getElementById('form-status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = document.getElementById('question').value;
+            const answer = document.getElementById('answer').value;
+            const category = document.getElementById('category').value;
+
+            statusDiv.textContent = 'Enseignement en cours...';
+            statusDiv.className = 'status-loading';
+
+            try {
+                const response = await fetch('/teach', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, answer, category })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    statusDiv.textContent = result.reply;
+                    statusDiv.className = 'status-success';
+                    form.reset();
+                } else {
+                    statusDiv.textContent = `Erreur: ${result.reply}`;
+                    statusDiv.className = 'status-error';
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Erreur de connexion avec le serveur.';
+                statusDiv.className = 'status-error';
+            }
+        });
+    </script>
 </body>
 </html>
