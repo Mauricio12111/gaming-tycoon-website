@@ -1,127 +1,104 @@
-/* Définition des variables de couleur et des styles de base */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
 :root {
-    --bg-color: #f0f2f5;
-    --container-bg: #ffffff;
-    --primary-color: #0084ff;
-    --secondary-color: #006ac1;
-    --chat-bubble-user: #0084ff;
-    --text-color-user: #ffffff;
-    --chat-bubble-ai: #e4e6eb;
-    --text-color-ai: #050505;
-    --header-text: #65676b;
-    --border-color: #ced0d4;
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --primary-color: #bb86fc;
+    --text-color: #e0e0e0;
+    --border-color: #333;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
     background-color: var(--bg-color);
+    color: var(--text-color);
     margin: 0;
+    padding: 20px;
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
 }
 
-/* Styles pour le conteneur principal du chat */
-.chat-container {
+.container {
     width: 100%;
-    max-width: 600px;
-    height: 90vh;
-    max-height: 800px;
-    background-color: var(--container-bg);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    max-width: 800px;
 }
 
-.chat-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--border-color);
+header {
     text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
 }
 
-.chat-header h1 {
-    margin: 0;
-    font-size: 1.2rem;
+header h1 {
+    color: var(--primary-color);
+    margin-bottom: 5px;
 }
 
-.chat-header p {
-    margin: 0;
-    font-size: 0.8rem;
-    color: var(--header-text);
-}
-
-.chat-box {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
+main {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 40px;
 }
 
-.message {
-    max-width: 75%;
-    padding: 10px 15px;
-    border-radius: 18px;
-    line-height: 1.4;
-    word-wrap: break-word;
-}
-
-.message.user {
-    align-self: flex-end;
-    background-color: var(--chat-bubble-user);
-    color: var(--text-color-user);
-    border-bottom-right-radius: 4px;
-}
-
-.message.bot {
-    align-self: flex-start;
-    background-color: var(--chat-bubble-ai);
-    color: var(--text-color-ai);
-    border-bottom-left-radius: 4px;
-}
-
-.typing-indicator {
-    padding: 5px 20px;
-    font-style: italic;
-    color: #65676b;
-    font-size: 0.9rem;
-}
-
-.chat-form {
-    display: flex;
-    padding: 10px;
-    border-top: 1px solid var(--border-color);
-    gap: 10px;
-}
-
-.chat-form input {
-    flex-grow: 1;
-    padding: 10px 15px;
+.teach-section, .knowledge-section {
+    background-color: var(--surface-color);
+    padding: 25px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-    border-radius: 20px;
-    font-size: 1rem;
-    outline: none;
 }
 
-.chat-form input:focus {
-    border-color: var(--primary-color);
+h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+    opacity: 0.9;
 }
 
-.chat-form button {
-    padding: 10px 20px;
-    border: none;
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 12px;
+    background-color: #2c2c2c;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    color: var(--text-color);
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+button {
+    padding: 12px 20px;
     background-color: var(--primary-color);
-    color: white;
-    border-radius: 20px;
-    font-size: 1rem;
+    color: #121212;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.3s ease;
 }
 
-.chat-form button:hover {
-    background-color: var(--secondary-color);
+button:hover {
+    background-color: #a367e8;
 }
+
+#form-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 500;
+}
+.status-success { background-color: #2e7d32; }
+.status-error { background-color: #c62828; }
+.status-loading { background-color: #37474f; }
