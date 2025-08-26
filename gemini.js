@@ -1,82 +1,169 @@
-// api/gemini.js
-const { GoogleGenAI } = require('@google/genai');
-const mysql = require('mysql2/promise');
+// Server.js - Version Ultra Boostée
 
-// ⚠️ ATTENTION : Informations d'identification en clair pour le test. 
-// Pour la production, utilisez des Variables d'Environnement Vercel.
+import express from "express";
+import bodyParser from "body-parser";
+import mysql from "mysql2/promise";
+import cors from "cors";
+import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const GEMINI_API_KEY = "AIzaSyBDdDDUxr4Y8ZSFN7fBrkRzuL3SkIswAqw";
-const DATABASE_CONFIG = {
-    host: "mysql-1a36101-botwii.c.aivencloud.com",
-    port: 14721,
-    user: "avnadmin",
-    password: "AVNS_BvVULOCxM7CcMQd0Aqw",
-    database: "defaultdb",
-    // Nécessaire pour la connexion sécurisée (ssl-mode=REQUIRED)
-    ssl: {
-        rejectUnauthorized: true
-    }
-};
+// --- CONFIGURATION INITIALE ---
+dotenv.config();
 
-// Initialisation de la connexion à la base de données et de l'IA
-const connection = mysql.createPool(DATABASE_CONFIG);
-const ai = new new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Fonction pour créer la table si elle n'existe pas
-async function ensureTableExists() {
-    // La table est renommée 'stockage' pour correspondre au concept.
-    const query = `
-        CREATE TABLE IF NOT EXISTS stockage (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            question TEXT NOT NULL,
-            reponse TEXT NOT NULL
-        )
-    `;
-    await connection.execute(query);
-    console.log("Table 'stockage' vérifiée/créée.");
+// Configuration pour servir les fichiers statiques (HTML, CSS)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Middlewares
+app.use(cors());
+app.use(bodyParser.json());
+
+// --- CONNEXIONS EXTERNES (BASE DE DONNÉES & IA) ---
+
+// Connexion sécurisée à la DB
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
+    port: process.env.DB_PORT,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    ssl: { rejectUnauthorized: false }
+});
+
+// Initialisation du client Google Gemini AI
+let genAI;
+if (process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log("✅ Client Google Gemini AI initialisé.");
+} else {
+    console.warn("⚠️ Clé API Gemini non trouvée. Le mode IA est désactivé.");
 }
 
-// Fonction principale qui gère la requête POST
-module.exports = async (req, res) => {
-    // Vérification de la méthode
-    if (req.method !== 'POST') {
-        res.status(405).send('Method Not Allowed');
-        return;
-    }
 
-    const { message } = req.body;
+// --- FONCTIONS UTILITAIRES ---
 
-    if (!message) {
-        res.status(400).send({ error: "Le message est requis." });
-        return;
+// Fonction pour sécuriser les noms de table
+const sanitizeTableName = (name) => {
+    // Garde uniquement les lettres, chiffres et remplace les espaces/caractères spéciaux par _
+    return name.replace(/[^a-zA-Z0-9_]/g, '_');
+};
+
+// Fonction pour créer une table de connaissance si elle n'existe pas
+const createKnowledgeTable = async (tableName) => {
+    const sanitizedTableName = sanitizeTableName(tableName);
+    const query = `
+        CREATE TABLE IF NOT EXISTS ${sanitizedTableName} (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL UNIQUE,
+            content TEXT,
+            context TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`;
+    await pool.execute(query);
+    console.log(`Table '${sanitizedTableName}' vérifiée ou créée.`);
+    return sanitizedTableName;
+};
+
+
+// --- ROUTES DE L'API ---
+
+// Route pour l'interface d'administration
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Route POST /ask (avec fallback)
+app.post("/ask", async (req, res) => {
+    const { question } = req.body;
+    if (!question) {
+        return res.status(400).json({ reply: "❌ Une question est requise !" });
     }
 
     try {
-        // 1. Assurez-vous que la table de stockage existe
-        await ensureTableExists();
+        // Étape 1 : Chercher dans TOUTES les tables de la DB une correspondance
+        const [tables] = await pool.query("SHOW TABLES");
+        for (const table of tables) {
+            const tableName = Object.values(table)[0];
+            // On exclut les tables de service
+            if (tableName === 'knowledge' || tableName === 'learn_queue') continue;
 
-        // 2. Appel au modèle Gemini pour obtenir la réponse
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ role: "user", parts: [{ text: message }] }],
-        });
+            const [rows] = await pool.execute(`SELECT content FROM ${tableName} WHERE title = ? LIMIT 1`, [question]);
+            if (rows.length > 0) {
+                console.log(`💡 Réponse trouvée dans la DB (Table: ${tableName})`);
+                return res.json({ reply: rows[0].content });
+            }
+        }
 
-        const responseText = response.text;
-        
-        // 3. Insertion de la question et de la réponse dans MySQL (Stockage)
-        const insertQuery = "INSERT INTO stockage (question, reponse) VALUES (?, ?)";
-        await connection.execute(insertQuery, [message, responseText]);
-        
-        console.log(`[MySQL DB] Nouvelle entrée stockée.`);
+        // Étape 2 : Si rien dans la DB, appeler l'IA (si la clé est configurée)
+        if (genAI) {
+            try {
+                console.log("🧠 Réponse non trouvée en local, appel de l'IA Gemini...");
+                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const result = await model.generateContent(question);
+                const response = result.response;
+                const text = response.text();
+                
+                // Auto-apprentissage : on stocke la nouvelle réponse dans la catégorie "general"
+                await createKnowledgeTable('general');
+                const sql = `INSERT INTO general (title, content) VALUES (?, ?) ON DUPLICATE KEY UPDATE content = ?`;
+                await pool.execute(sql, [question, text, text]);
+                console.log("📚 Auto-apprentissage réussi !");
 
-        // 4. Renvoie de la réponse à l'interface (Frontend)
-        res.status(200).json({ aiResponse: responseText });
-        
-    } catch (error) {
-        console.error("Erreur critique (Gemini ou MySQL) :", error);
-        
-        // En cas d'échec de la connexion (MySQL ou Gemini), renvoyer une erreur 500
-        res.status(500).json({ error: "Erreur lors du traitement. Connexion à MySQL ou Gemini échouée.", details: error.message });
+                return res.json({ reply: text });
+            } catch (apiError) {
+                // Étape 3 : Si l'API échoue (crédits épuisés, etc.), utiliser le fallback
+                console.error("❌ Erreur API Gemini:", apiError.message);
+                const fallbackMessage = "Je n'ai pas trouvé la réponse dans ma mémoire et je ne peux pas chercher plus loin pour le moment. Mon intelligence externe est peut-être indisponible.";
+                return res.status(503).json({ reply: fallbackMessage });
+            }
+        } else {
+             // Étape 4 : Si pas de clé API du tout
+             const fallbackMessage = "Je ne connais pas la réponse et mon intelligence externe n'est pas configurée.";
+             return res.status(404).json({ reply: fallbackMessage });
+        }
+
+    } catch (dbError) {
+        console.error("❌ Erreur serveur sur /ask :", dbError);
+        res.status(500).json({ reply: "⚠️ Une erreur est survenue sur le serveur." });
     }
-};
+});
+
+// Route POST /teach (avec création de table dynamique)
+app.post("/teach", async (req, res) => {
+    let { question, answer, category } = req.body;
+    if (!question || !answer || !category) {
+        return res.status(400).json({ reply: "❌ Question, réponse et catégorie sont requises !" });
+    }
+
+    try {
+        // Crée la table pour la catégorie si elle n'existe pas
+        const tableName = await createKnowledgeTable(category);
+
+        const sql = `
+            INSERT INTO ${tableName} (title, content) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE content = ?, updated_at = NOW()
+        `;
+        await pool.execute(sql, [question, answer, answer]);
+
+        res.status(201).json({ reply: `✅ Mangrat a appris cette connaissance dans la catégorie '${tableName}' !` });
+    } catch (err) {
+        console.error("❌ Erreur serveur sur /teach :", err);
+        res.status(500).json({ reply: "⚠️ Une erreur est survenue lors de l'apprentissage." });
+    }
+});
+
+// --- DÉMARRAGE DU SERVEUR ---
+app.listen(PORT, () => {
+    console.log(`🚀 Mangrat Server est lancé sur http://localhost:${PORT}`);
+    console.log(`👉 Interface Admin disponible sur http://localhost:${PORT}/admin`);
+});
