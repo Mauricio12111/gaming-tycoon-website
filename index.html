@@ -3,27 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gaming Tycoon</title>
+    <title>Discuter avec Mangrat</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Bienvenue sur Gaming Tycoon !</h1>
-        <p>Votre destination ultime pour tout ce qui concerne le gaming.</p>
-    </header>
 
-    <section class="content">
-        <h2>Rejoignez notre communautC) !</h2>
-        <p>Connectez-vous avec d'autres passionnC)s et ne manquez rien de nos sessions de jeu !</p>
-        <div class="links">
-            <a href="https://discord.gg/qfVbeVU" target="_blank" class="button discord">Rejoignez-nous sur Discord</a>
-            <a href="https://www.twitch.tv/mauricio_tukss1231" target="_blank" class="button twitch">Suivez-nous sur Twitch</a>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Mangrat AI 🧠</h1>
+            <p>Connecté au Cerveau Central</p>
+        </header>
+
+        <div class="chat-box" id="chat-box">
+            </div>
+
+        <div class="typing-indicator" id="typing-indicator" style="display: none;">
+            Mangrat est en train d'écrire...
         </div>
-    </section>
 
-    <footer>
-        <p>&copy; 2025 Gaming Tycoon. Tous droits rC)servC)s.</p>
-    </footer>
+        <form class="chat-form" id="chat-form">
+            <input 
+                type="text" 
+                id="user-input" 
+                placeholder="Posez votre question ici..." 
+                autocomplete="off" 
+                autofocus
+            >
+            <button type="submit">Envoyer</button>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
-
